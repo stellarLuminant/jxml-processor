@@ -1,0 +1,7 @@
+This is an unrelated file to the sample process.
+
+.cxml files in this directory should be deleted before being repopulated by new cxmls.
+
+However, other files should remain intact, such as this one.
+
+If the system is working properly, this file should remain intact across multiple runs.

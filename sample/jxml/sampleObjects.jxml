@@ -1,0 +1,32 @@
+<Objects>
+  <!-- If the system is working properly, this comment should appear in the cxml. -->
+  <!-- The root <Objects> tag shouldn't be present. -->
+  <Object id="LT TG Showcase" type="0x55db">
+    <DisplayId>Telegrapher Village Girl</DisplayId>
+    <State id="Intro">
+      {say("Telegraphing Showcase powered by JXML! 12 available commands based on mixing 3 keywords:")}
+      {say("First keyword: rect, line, circle")} 
+      {say("Second keyword: auto, target")}
+      {say("Third keyword: full, blink")}
+      {say("Combine the keywords sequentially to get a specific telegraph sample (i.e. 'lineTargetFull')", 3)}
+      <Transition>Control</Transition>
+    </State>
+    <State id="Control">
+      {sayState("RectAutoFull")}
+      {sayState("RectAutoBlink")}
+      {sayState("RectTargetFull")}
+      {sayState("RectTargetBlink")}
+      {sayState("LineAutoFull")}
+      {sayState("LineAutoBlink")}
+      {sayState("LineTargetFull")}
+      {sayState("LineTargetBlink")}
+      {sayState("CircleAutoFull")}
+      {sayState("CircleAutoBlink")}
+      {sayState("CircleTargetFull")}
+      {sayState("CircleTargetBlink")}
+      {sayState("Despawn")}
+    </State>
+  </Object>
+  <!-- If the system is working properly, this comment should appear in the cxml. -->
+  <!-- The root </Objects> tag shouldn't be present. -->
+</Objects>
