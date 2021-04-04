@@ -108,3 +108,5 @@ dist
 
 # Application Binary
 jxml-processor.exe
+/sample/cxml/sampleObjects.cxml
+/sample/xml/sampleObjects.xml

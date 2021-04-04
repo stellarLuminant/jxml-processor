@@ -1,7 +1,7 @@
 {
   "name": "jxml-processor",
   "version": "1.0.0",
-  "description": "It copy pastes my xml because im lazy to",
+  "description": "Templating system for copying/transforming XML files with JS.",
   "main": "index.js",
   "bin": "index.js",
   "scripts": {
@@ -10,8 +10,8 @@
     "test": "jxml-processor.exe sample/sampleLibrary.js sample/jxml sample/cxml sample/xml/sampleTemplate.xml sample/xml/sampleObjects.xml 2",
     "testTab": "jxml-processor.exe sample/sampleLibrary.js sample/jxml sample/cxml sample/xml/sampleTemplate.xml sample/xml/sampleObjects.xml \t"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Stella",
+  "license": "MIT",
   "dependencies": {
     "xml-js": "^1.6.11"
   }
