@@ -157,7 +157,7 @@ const replaceTemplate = function (t, pv) {
   // generate variables from our param names/values
   let ev = createVarEvals(pn, pv);
   for (let i = 0; i < ev.length; i++) {
-    eval(ev[i]);
+    (1, eval)(ev[i]);
   }
   //ev.forEach(d => eval(d));
 
@@ -172,9 +172,10 @@ const replaceTemplate = function (t, pv) {
       ci[i] = ci[i].substring(1, ci[i].length);
     }
 
-    let v = eval(ci[i]);
+    let v = (1, eval)(ci[i]);
     if (noPrint || v == null)
       v = "";
+    
     output = output.replace(cb[i], v);
   }
 

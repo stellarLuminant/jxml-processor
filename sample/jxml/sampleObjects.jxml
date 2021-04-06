@@ -1,3 +1,7 @@
+{!var importantData = "This needs to be printed out!";}
+
+{!var indirectDataCall = (bubbleTime) => `<Behavior text="{importantData}" bubbleTime="${bubbleTime}">Say</Behavior>`;}
+
 <Objects>
   <!-- If the system is working properly, this comment should appear in the cxml. -->
   <!-- The root <Objects> tag shouldn't be present. -->
@@ -9,6 +13,7 @@
       {say("Second keyword: auto, target")}
       {say("Third keyword: full, blink")}
       {say("Combine the keywords sequentially to get a specific telegraph sample (i.e. 'lineTargetFull')", 3)}
+      {indirectDataCall(3)}
       <Transition>Control</Transition>
     </State>
     <State id="Control">
