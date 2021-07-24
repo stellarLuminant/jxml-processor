@@ -4,6 +4,10 @@ const path = require('path');
 const convert = require('xml-js');
 const processor = require('./processor.js');
 
+// =============== Constants ===============
+
+const VERSION = "1.2.0 DEBUG";
+
 // =============== Application functions ===============
 
 /**
@@ -16,7 +20,7 @@ const readFile = (file) => {
 /**
  * @param  {string} dir The directory to search for files in.
  * @param  {string} suffix The suffix to check files with, usually used to find a file extension.
- * @returns {Array.<string>} files The qualified paths to the files listed in the directory. 
+ * @returns {Array.<string>} files The qualified paths to the files listed in the directory, in alphanumeric order.
  */
 const findFilesInDir = (dir, suffix) => {
   return fs.readdir(dir)
@@ -26,6 +30,7 @@ const findFilesInDir = (dir, suffix) => {
           dir: dir,
           base: filename
         }))
+        .sort()
     })
     .catch(reason => console.error(`Unable to find files in directory "${dir}": ${reason}`));
 };
@@ -205,6 +210,8 @@ const copyCxmls = async function (cxmlDir, xml, xmlPath, spaces) {
 
 // =============== Start of execution ===============
 const main = async function () {
+  console.log(`JXML Processor version ${VERSION}`);
+
   const args = readArgs();
   const [inputJs, inputJxmls, trashCxmls, inputXml] = await processArgs(args);
 

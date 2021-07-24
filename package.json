@@ -1,6 +1,6 @@
 {
   "name": "jxml-processor",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "Templating system for copying/transforming XML files with JS.",
   "main": "index.js",
   "bin": "index.js",
