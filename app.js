@@ -6,7 +6,7 @@ const processor = require('./processor.js');
 
 // =============== Constants ===============
 
-const VERSION = "1.2.0 DEBUG";
+const VERSION = "1.2.0";
 
 // =============== Application functions ===============
 
@@ -87,43 +87,59 @@ const clearTrashCxmls = async function (trashCxmls) {
 }
 /**
  * @param  {string} inputJs - The file contents of a library JS file for processing.
+ * @param  {string} filepath - The qualified path for the JXML to process.
+ * @param  {string} cxmlDir - The directory to write a new CXML to.
+ * @param  {number|string} spaces - The number of spaces to indent the new CXML with. May also use \t for tabs.
+ */
+const processAndWriteCxml = async function (inputJs, filepath, cxmlDir, spaces) {
+  const filename = path.basename(filepath, ".jxml");
+  const file = await readFile(filepath);
+
+  if (file == null)
+    return Promise.reject(`Unable to read file "${filepath}"`);
+
+  const output = processor.processJxml(inputJs, file);
+
+  if (output == null)
+    return;
+  
+  const cxmlPath = path.format({
+    dir: cxmlDir,
+    name: filename,
+    ext: ".cxml"
+  });
+
+  // Convert output to JS Object and back to XML for formatting reasons
+  const jsOutput = convert.xml2js(output);
+  const formattedXml = convert.js2xml(jsOutput, { spaces: spaces });
+
+  try {
+    await fs.writeFile(cxmlPath, formattedXml);
+    return Promise.resolve();
+  } catch (err) {
+    return Promise.reject(`Unable to write data to "${cxmlPath}": ${err}`);
+  }
+}
+
+/**
+ * @param  {string} inputJs - The file contents of a library JS file for processing.
  * @param  {Array.<string>} inputJxmls - The qualified paths to JXMLs for processing.
  * @param  {string} cxmlDir - The directory to write new CXMLs to.
  * @param  {number|string} spaces - The number of spaces to indent new CXMLs with. May also use \t for tabs.
  */
 const processAndWriteCxmls = async function (inputJs, inputJxmls, cxmlDir, spaces) {
   let writeCount = 0;
-  const writeCxmlPromises = inputJxmls.map(async function (filepath) {
-    const filename = path.basename(filepath, ".jxml");
-    const file = await readFile(filepath);
 
-    if (file == null)
-      return;
-
-    const output = processor.processJxml(inputJs, file);
-
-    if (output == null)
-      return;
-    
-    const cxmlPath = path.format({
-      dir: cxmlDir,
-      name: filename,
-      ext: ".cxml"
-    });
-
-    // Convert output to JS Object and back to XML for formatting reasons
-    const jsOutput = convert.xml2js(output);
-    const formattedXml = convert.js2xml(jsOutput, { spaces: spaces });
-
+  const processAndCount = async function (path) {
     try {
-      const waitForWrite = await fs.writeFile(cxmlPath, formattedXml);
-      writeCount += 1;
+      await processAndWriteCxml(inputJs, path, cxmlDir, spaces);
+      writeCount++;
     } catch (err) {
-      console.error(`Unable to write data to "${cxmlPath}": ${err}`);
+      console.error(err);
     }
-  });
+  }
 
-  const writeCxmlCompletion = await Promise.all(writeCxmlPromises);
+  await inputJxmls.reduce((promiseChain, filepath) => promiseChain.then(() => processAndCount(filepath)), Promise.resolve());
 
   return writeCount;
 }
