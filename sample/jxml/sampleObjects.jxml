@@ -14,6 +14,7 @@
       {say("Third keyword: full, blink")}
       {say("Combine the keywords sequentially to get a specific telegraph sample (i.e. 'lineTargetFull')", 3)}
       {indirectDataCall(3)}
+      {SampleObjects.dataCall(4)}
       <Transition>Control</Transition>
     </State>
     <State id="Control">

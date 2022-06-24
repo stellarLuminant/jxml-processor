@@ -1,14 +1,14 @@
 {
   "name": "jxml-processor",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Templating system for copying/transforming XML files with JS.",
   "main": "index.js",
   "bin": "index.js",
   "scripts": {
     "build": "pkg -t latest-win-x64 package.json",
-    "testGarbage": "jxml-processor.exe abcd efgh ijkl mnop qrst \t",
-    "test": "jxml-processor.exe sample/sampleLibrary.js sample/jxml sample/cxml sample/xml/sampleTemplate.xml sample/xml/sampleObjects.xml 2",
-    "testTab": "jxml-processor.exe sample/sampleLibrary.js sample/jxml sample/cxml sample/xml/sampleTemplate.xml sample/xml/sampleObjects.xml \t"
+    "testGarbage": "jxml-processor.exe abcd abcd efgh ijkl mnop qrst \t bababa baabaa",
+    "test": "jxml-processor.exe sample/sampleLibrary.js sample/js sample/jxml sample/cxml sample/xml/sampleTemplate.xml sample/xml/sampleObjects.xml 2 ^<Objects^>  ^</Objects^>",
+    "testTab": "jxml-processor.exe sample/sampleLibrary.js sample/js sample/jxml sample/cxml sample/xml/sampleTemplate.xml sample/xml/sampleObjects.xml \t ^<Objects^> ^</Objects^>"
   },
   "author": "Stella",
   "license": "MIT",

@@ -200,14 +200,19 @@ const replaceString = function (s) {
 
 /**
  * Takes a JS library string and a JXML string and processes them.
- * @param  {string} js - A file's worth of JS library functions, often shared across JXML files.
- * @param  {string} jxml - A file's worth of JXML to transform.
+ * @param  {string} libJs - A file's worth of JS library functions, often shared across JXML files.
+ * @param  {string} js    - A file's worth of input JS local to the JXMl.
+ * @param  {string} jxml  - A file's worth of JXML to transform.
  */
-const processJxml = function (js, jxml) {
+const processJxml = function (libJs, js, jxml) {
+  const bundle = libJs + js;
+  Embed = EmbedHOF;
+  StringEmbed = StringEmbedHOF;
+
   try {
-    Embed = EmbedHOF;
-    StringEmbed = StringEmbedHOF;
-    (1, eval)(js);
+    // This eval statement is the heart of the preprocessor functionality.
+    // Do not change it unless you know exactly what will happen.
+    (1, eval)(bundle);
     return replaceString(jxml);
   } catch (err) {
     console.error(`Failed to process JXML: ${err}`);

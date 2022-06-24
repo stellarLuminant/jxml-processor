@@ -6,7 +6,7 @@ const processor = require('./processor.js');
 
 // =============== Constants ===============
 
-const VERSION = "1.2.0";
+const VERSION = "1.3.0";
 
 // =============== Application functions ===============
 
@@ -47,11 +47,14 @@ const deleteFiles = function (files) {
 /**
  * @typedef {Object} InputArgs
  * @property {string} js - The relative or absolute path to the input library js file.
+ * @property {string} jsDir - The relative or absolute path to the input js directory.
  * @property {string} jxmlDir - The relative or absolute path to the input jxml directory.
  * @property {string} cxmlDir - The relative or absolute path to the output cxml directory.
  * @property {string} inputXml - The relative or absolute path to the input xml file.
  * @property {string} outputXml - The relative or absolute path to the output xml file.
  * @property {number|string} spaces - The number of spaces to indent output cxml/xml with. May also accept \t for tabs.
+ * @property {string} startString - A unique string to be located in cxml that indicates the start of the text to copy, exclusive of the string itself.
+ * @property {string} endString - A unique string to be located in cxml that indicates the end of the text to copy, exclusive of the string itself.
  */
 
 /**
@@ -60,11 +63,14 @@ const deleteFiles = function (files) {
 const readArgs = function () {
   return {
     js: process.argv[2],
-    jxmlDir: process.argv[3],
-    cxmlDir: process.argv[4],
-    inputXml: process.argv[5],
-    outputXml: process.argv[6],
-    spaces: isNaN(process.argv[7]) ? '\t' : Number(process.argv[7])
+    jsDir: process.argv[3],
+    jxmlDir: process.argv[4],
+    cxmlDir: process.argv[5],
+    inputXml: process.argv[6],
+    outputXml: process.argv[7],
+    spaces: isNaN(process.argv[8]) ? '\t' : Number(process.argv[8]),
+    startString: process.argv[9],
+    endString: process.argv[10]
   };
 };
 
@@ -72,7 +78,7 @@ const readArgs = function () {
  * @param  {InputArgs} args - Arguments passed in from the program scope.
  */
 const processArgs = async function (args) {
-  return Promise.all([readFile(args.js), findFilesInDir(args.jxmlDir, ".jxml"), findFilesInDir(args.cxmlDir, ".cxml"), readFile(args.inputXml)])
+  return Promise.all([readFile(args.js), findFilesInDir(args.jsDir, ".js"), findFilesInDir(args.jxmlDir, ".jxml"), findFilesInDir(args.cxmlDir, ".cxml"), readFile(args.inputXml)])
   .catch(reason => console.error(`Unable to process all args: ${reason}`));
 }
 /**
@@ -86,19 +92,23 @@ const clearTrashCxmls = async function (trashCxmls) {
     }
 }
 /**
- * @param  {string} inputJs - The file contents of a library JS file for processing.
- * @param  {string} filepath - The qualified path for the JXML to process.
+ * @param  {string} libJs - The file contents of a library JS file for processing.
+ * @param  {string} jsPath - The qualified path for the JS to process.
+ * @param  {string} jxmlPath - The qualified path for the JXML to process.
  * @param  {string} cxmlDir - The directory to write a new CXML to.
  * @param  {number|string} spaces - The number of spaces to indent the new CXML with. May also use \t for tabs.
  */
-const processAndWriteCxml = async function (inputJs, filepath, cxmlDir, spaces) {
-  const filename = path.basename(filepath, ".jxml");
-  const file = await readFile(filepath);
+const processAndWriteCxml = async function (libJs, jsPath, jxmlPath, cxmlDir, spaces) {
+  const filename = path.basename(jxmlPath, ".jxml");
+  const jsFile = await readFile(jsPath);
+  const jxmlFile = await readFile(jxmlPath);
 
-  if (file == null)
-    return Promise.reject(`Unable to read file "${filepath}"`);
+  if (jsFile == null)
+    return Promise.reject(`Unable to read file "${jsPath}"`);
+  if (jxmlFile == null)
+    return Promise.reject(`Unable to read file "${jxmlPath}"`);
 
-  const output = processor.processJxml(inputJs, file);
+  const output = processor.processJxml(libJs, jsFile, jxmlFile);
 
   if (output == null)
     return;
@@ -122,24 +132,48 @@ const processAndWriteCxml = async function (inputJs, filepath, cxmlDir, spaces) 
 }
 
 /**
- * @param  {string} inputJs - The file contents of a library JS file for processing.
+ * @param  {string} libJs - The file contents of a library JS file for processing.
+ * @param  {Array.<string>} inputJs - The qualified paths to JS files for processing.
  * @param  {Array.<string>} inputJxmls - The qualified paths to JXMLs for processing.
  * @param  {string} cxmlDir - The directory to write new CXMLs to.
  * @param  {number|string} spaces - The number of spaces to indent new CXMLs with. May also use \t for tabs.
  */
-const processAndWriteCxmls = async function (inputJs, inputJxmls, cxmlDir, spaces) {
+const processAndWriteCxmls = async function (libJs, inputJs, inputJxmls, cxmlDir, spaces) {
   let writeCount = 0;
 
-  const processAndCount = async function (path) {
+  let inputs = [];
+
+  for (let i = 0; i < inputJxmls.length; i++) {
+    const jxmlPath = inputJxmls[i];
+    const jxmlFilename = path.basename(jxmlPath, ".jxml");
+    const jsFilename = jxmlFilename + ".js";
+
+    const matches = inputJs.filter(jsPath => jsPath.includes(jsFilename));
+    if (matches == 0) {
+      console.error(`Unable to find JS file "${jsFilename}" matching "${jxmlPath}."`);
+    }
+
+    if (matches > 1) {
+      console.error(`Multiple matches found for JS file "${jsFilename}" matching "${jxmlPath}."`);
+      matches.forEach(match => console.error(`    ${match}`));
+    }
+
+    const jsPath = matches[0] ?? "";
+
+    inputs.push({ jxmlPath, jsPath });
+  }
+
+  const processAndCount = async function (paths) {
+    const { jsPath, jxmlPath } = paths;
     try {
-      await processAndWriteCxml(inputJs, path, cxmlDir, spaces);
+      await processAndWriteCxml(libJs, jsPath, jxmlPath, cxmlDir, spaces);
       writeCount++;
     } catch (err) {
       console.error(err);
     }
   }
 
-  await inputJxmls.reduce((promiseChain, filepath) => promiseChain.then(() => processAndCount(filepath)), Promise.resolve());
+  await inputs.reduce((promiseChain, paths) => promiseChain.then(() => processAndCount(paths)), Promise.resolve());
 
   return writeCount;
 }
@@ -149,8 +183,10 @@ const processAndWriteCxmls = async function (inputJs, inputJxmls, cxmlDir, space
  * @param  {string} xml - The file contents of the XML file to copy from.
  * @param  {string} xmlPath - The file path to write the new edited contents into.
  * @param  {number|string} spaces - The number of spaces to indent new XML with. May also use \t for tabs.
+ * @param  {string} startString - A unique string to be located in the file that indicates the start of the text to copy, exclusive of the string itself.
+ * @param  {string} endString - A unique string to be located in the file that indicates the end of the text to copy, exclusive of the string itself.
  */
-const copyCxmls = async function (cxmlDir, xml, xmlPath, spaces) {
+const copyCxmls = async function (cxmlDir, xml, xmlPath, spaces, startString, endString) {
   const cxmls = await findFilesInDir(cxmlDir, ".cxml");
   console.log(`Writing ${cxmls.length} cxmls to "${xmlPath}"...`);
 
@@ -184,20 +220,17 @@ const copyCxmls = async function (cxmlDir, xml, xmlPath, spaces) {
       continue;
     }
 
-    const startObjects = "<Objects>";
-    const endObjects = "</Objects>";
-
-    const startObjPosition = cxml.indexOf(startObjects);
-    const endObjPosition = cxml.lastIndexOf(endObjects);
+    const startObjPosition = cxml.indexOf(startString);
+    const endObjPosition = cxml.lastIndexOf(endString);
 
     // By default, copy the entire cxml.
     let copiedCxml = cxml;
 
-    // Unless we find the <Objects> tags, which we wanna remove.
+    // Unless we find the startString, which we wanna remove.
     if (startPosition !== -1 && endObjPosition !== -1) {
-      let startInnerPosition = startObjPosition + startObjects.length;
+      let startInnerPosition = startObjPosition + startString.length;
       
-      // If the character right after the start object is NOT the start of the end object
+      // If the character right after the startString is NOT the start of the endString
       // then we have characters inside we need to copy.
       if (startInnerPosition < endObjPosition) {
         copiedCxml = cxml.substring(startInnerPosition, endObjPosition);
@@ -229,14 +262,14 @@ const main = async function () {
   console.log(`JXML Processor version ${VERSION}`);
 
   const args = readArgs();
-  const [inputJs, inputJxmls, trashCxmls, inputXml] = await processArgs(args);
+  const [libJs, inputJs, inputJxmls, trashCxmls, inputXml] = await processArgs(args);
 
-  if (inputJs == null || inputJxmls == null || trashCxmls == null || inputXml == null) {
+  if (libJs == null || inputJs == null || inputJxmls == null || trashCxmls == null || inputXml == null) {
     console.error("Aborting process due to bad arguments.");
     return;
   }
 
-  console.log(`Input JS Library: ${Buffer.byteLength(inputJs, "utf8")} bytes`);
+  console.log(`Lib JS Library: ${Buffer.byteLength(libJs, "utf8")} bytes`);
   console.log(`Input XML File: ${Buffer.byteLength(inputXml, "utf8")} bytes`);
 
   if (inputJxmls.length == null || inputJxmls.length == 0) {
@@ -247,10 +280,10 @@ const main = async function () {
   console.log(`Found ${inputJxmls.length} input JXML files.`);
   await clearTrashCxmls(trashCxmls);
 
-  const successfulWriteCount = await processAndWriteCxmls(inputJs, inputJxmls, args.cxmlDir, args.spaces);
+  const successfulWriteCount = await processAndWriteCxmls(libJs, inputJs, inputJxmls, args.cxmlDir, args.spaces);
   console.log(`Successfully wrote ${successfulWriteCount} CXMLs.`);
 
-  await copyCxmls(args.cxmlDir, inputXml, args.outputXml, args.spaces);
+  await copyCxmls(args.cxmlDir, inputXml, args.outputXml, args.spaces, args.startString, args.endString);
 
   try {
     const newXml = await readFile(args.outputXml);
